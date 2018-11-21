@@ -34,3 +34,8 @@ for file in (train_file, test_file):
 vocab file
 """
 vocab_file = os.path.join(data_path, "vocab.dict")
+
+"""
+output files used to store data preprocessed
+"""
+output_file = os.path.join(data_path, "feature_record.tf_record")

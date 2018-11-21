@@ -56,6 +56,11 @@ def create_vocab(input_files, output_file, is_lower=True, skip_header=0):
 
 
 def generate_vocab(vocab_file):
+    """
+    create a vocab dict from a vocab_file. Each line only contains a word in the file!
+    :param vocab_file:
+    :return:
+    """
     vocab = collections.OrderedDict()
     id = 0
     with tf.gfile.GFile(vocab_file, "r") as reader:
@@ -80,7 +85,6 @@ def create_training_instance(input_files, vocab_file, is_lower=True, skip_header
     """
     tokenizer = tokenization.BasicTokenizer(do_lower_case=is_lower)
     vocab = generate_vocab(vocab_file)
-    instances = []
     for file in input_files:
         with open(file) as f:
             rows = 0
@@ -102,6 +106,12 @@ def create_training_instance(input_files, vocab_file, is_lower=True, skip_header
 
 
 def write_instances_to_example_files(instances, output_files):
+    """
+
+    :param instances: a dict ==> {'name': feature value}
+    :param output_files: a list of files
+    :return:
+    """
     writer = []
     for file in output_files:
         f = tf.gfile.GFile(file, "w")
@@ -142,6 +152,9 @@ def main(_):
 
 
 if __name__ == "__main__":
+    flags.mark_flag_as_required("input_file")
+    flags.mark_flag_as_required("output_file")
+    flags.mark_flag_as_required("vocab_file")
     FLAGS.input_file = config.train_file
     FLAGS.output_file = config.output_file
     FLAGS.vocab_file = config.vocab_file

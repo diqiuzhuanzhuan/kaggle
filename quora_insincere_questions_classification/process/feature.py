@@ -14,8 +14,10 @@ import collections
 
 flags = tf.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string("input_file", None, "Input raw text file (or comma-separated list of files).")
-flags.DEFINE_string("output_file", None, "TFRecord file (or comma-separated list of files).")
+flags.DEFINE_string("train_input_file", None, "Input raw text training file (or comma-separated list of files).")
+flags.DEFINE_string("test_input_file", None, "Input raw text testing file (or comma-separated list of files).")
+flags.DEFINE_string("train_output_file", None, "TFRecord file containing training data(or comma-separated list of files).")
+flags.DEFINE_string("test_output_file", None, "TFRecord file containing test data(or comma-separated list of files).")
 flags.DEFINE_string("vocab_file", None, "Vocab file")
 flags.DEFINE_boolean("recreate_vocab", False, "if you want to create a vocab again?")
 flags.DEFINE_boolean("is_lower", True, "make sure everything is lower case or not")
@@ -42,7 +44,7 @@ def create_vocab(input_files, output_file, is_lower=True, skip_header=0):
                     continue
                 text = tokenizer.tokenize(line[1])
                 if rows <= 10:
-                    tf.logging.info("line is {}, {}, {}".format(line[0], line[1], line[2]))
+                    tf.logging.info("line is {}".format(line))
                     tf.logging.info("text is {}".format(text))
                 for word in text:
                     words[word] = 0
@@ -105,6 +107,36 @@ def create_training_instance(input_files, vocab_file, is_lower=True, skip_header
                 yield feature
 
 
+def create_test_instance(input_files, vocab_file, is_lower=True, skip_header=0):
+    """
+
+    :param input_files:
+    :param vocab_file:
+    :param is_lower:
+    :param skip_header:
+    :return:
+    """
+    tokenizer = tokenization.BasicTokenizer(do_lower_case=is_lower)
+    vocab = generate_vocab(vocab_file)
+    for file in input_files:
+        with open(file) as f:
+            rows = 0
+            reader = csv.reader(f)
+            for line in reader:
+                rows += 1
+                if rows <= skip_header:
+                    tf.logging.info("header is {}".format(line))
+                    continue
+                if rows <= 10:
+                    tf.logging.info("line is {}, {}".format(line[0], line[1]))
+                text = tokenizer.tokenize(line[1])
+                feature = collections.OrderedDict()
+                feature["qid"] = line[0]
+                feature["input_ids"] = tokenization.convert_tokens_to_ids(vocab, text)
+                feature["label"] = 0
+                yield feature
+
+
 def write_instances_to_example_files(instances, output_files):
     """
 
@@ -136,27 +168,37 @@ def write_instances_to_example_files(instances, output_files):
 
 def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
-    files = FLAGS.input_file.split(",")
-    tf.logging.info("########## read files ###########")
-    for file in files:
+    train_files = FLAGS.train_input_file.split(",")
+    test_files = FLAGS.test_input_file.split(",")
+    tf.logging.info("########## read training files ###########")
+    for file in train_files:
         tf.logging.info(file)
 
     vocab_file = FLAGS.vocab_file
     if not os.path.exists(vocab_file) or FLAGS.recreate_vocab:
-        create_vocab(files, vocab_file, True, 1)
+        create_vocab(train_files+test_files, vocab_file, True, 1)
 
-    instances = create_training_instance(files, vocab_file, True, 1)
+    instances = create_training_instance(train_files, vocab_file, True, 1)
+    train_output_files = FLAGS.train_output_file.split(",")
+    write_instances_to_example_files(instances, train_output_files)
 
-    output_files = FLAGS.output_file.split(",")
-    write_instances_to_example_files(instances, output_files)
+    tf.logging.info("######## read test files ##########")
+
+    instances = create_test_instance(test_files, vocab_file, True, 1)
+    test_output_files = FLAGS.test_output_file.split(",")
+    write_instances_to_example_files(instances, test_output_files)
 
 
 if __name__ == "__main__":
-    flags.mark_flag_as_required("input_file")
-    flags.mark_flag_as_required("output_file")
+    flags.mark_flag_as_required("train_input_file")
+    flags.mark_flag_as_required("test_input_file")
+    flags.mark_flag_as_required("train_output_file")
+    flags.mark_flag_as_required("test_output_file")
     flags.mark_flag_as_required("vocab_file")
-    FLAGS.input_file = config.train_file
-    FLAGS.output_file = config.output_file
+    FLAGS.train_input_file = config.train_file
+    FLAGS.test_input_file = config.test_file
+    FLAGS.train_output_file = config.train_output_file
+    FLAGS.test_output_file = config.test_output_file
     FLAGS.vocab_file = config.vocab_file
-    FLAGS.recreate_vocab = False
+    FLAGS.recreate_vocab = True
     tf.app.run()

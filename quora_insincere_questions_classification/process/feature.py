@@ -190,6 +190,9 @@ def main(_):
 
 
 if __name__ == "__main__":
+    s = input("该脚本功能是根据原始的数据来创建tfrecord格式的数据文件，如果确定需要执行下一步，请输入'yes', 否则输入其他\n")
+    if s != 'yes':
+        exit()
     flags.mark_flag_as_required("train_input_file")
     flags.mark_flag_as_required("test_input_file")
     flags.mark_flag_as_required("train_output_file")
@@ -200,5 +203,7 @@ if __name__ == "__main__":
     FLAGS.train_output_file = config.train_output_file
     FLAGS.test_output_file = config.test_output_file
     FLAGS.vocab_file = config.vocab_file
-    FLAGS.recreate_vocab = True
+    FLAGS.recreate_vocab = False
     tf.app.run()
+
+

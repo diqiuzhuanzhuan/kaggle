@@ -19,6 +19,7 @@ flags.DEFINE_string("test_input_file", None, "Input raw text testing file (or co
 flags.DEFINE_string("train_output_file", None, "TFRecord file containing training data(or comma-separated list of files).")
 flags.DEFINE_string("test_output_file", None, "TFRecord file containing test data(or comma-separated list of files).")
 flags.DEFINE_string("vocab_file", None, "Vocab file")
+flags.DEFINE_integer("max_sequence_length", 300, "text with length more than setting will be truncated")
 flags.DEFINE_boolean("recreate_vocab", False, "if you want to create a vocab again?")
 flags.DEFINE_boolean("is_lower", True, "make sure everything is lower case or not")
 flags.DEFINE_integer("random_seed", 100, "Random seed")
@@ -54,7 +55,8 @@ def create_vocab(input_files, output_file, is_lower=True, skip_header=0):
         for word in words:
             writer.write(word)
             writer.write("\n")
-        writer.write("<UNK>")
+        writer.write("<UNK>\n")
+        writer.write("<PAD>")
 
 
 def generate_vocab(vocab_file):
@@ -103,6 +105,10 @@ def create_training_instance(input_files, vocab_file, is_lower=True, skip_header
                 feature = collections.OrderedDict()
                 feature["qid"] = line[0]
                 feature["input_ids"] = tokenization.convert_tokens_to_ids(vocab, text)
+                if len(feature["input_ids"]) < FLAGS.max_sequence_length:
+                    feature["input_ids"].extend([vocab["<PAD>"]] * (FLAGS.max_sequence_length - len(feature["input_ids"])))
+                if len(feature["input_ids"]) > FLAGS.max_sequence_length:
+                    feature["input_ids"] = feature["input_ids"][:FLAGS.max_sequence_length]
                 feature["label"] = label
                 yield feature
 
@@ -133,6 +139,12 @@ def create_test_instance(input_files, vocab_file, is_lower=True, skip_header=0):
                 feature = collections.OrderedDict()
                 feature["qid"] = line[0]
                 feature["input_ids"] = tokenization.convert_tokens_to_ids(vocab, text)
+                if len(feature["input_ids"]) < FLAGS.max_sequence_length:
+                    feature["input_ids"].extend([vocab["<PAD>"]] * (FLAGS.max_sequence_length - len(feature["input_ids"])))
+
+                if len(feature["input_ids"]) > FLAGS.max_sequence_length:
+                    feature["input_ids"] = feature["input_ids"][:FLAGS.max_sequence_length]
+
                 feature["label"] = 0
                 yield feature
 
@@ -146,17 +158,18 @@ def write_instances_to_example_files(instances, output_files):
     """
     writer = []
     for file in output_files:
-        f = tf.gfile.GFile(file, "w")
+        f = tf.python_io.TFRecordWriter(file)
         writer.append(f)
 
     counts = 0
     for ele in instances:
         feature = collections.OrderedDict()
         feature["qid"] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[ele["qid"].encode("utf-8")]))
-        feature["input_ids"] = tf.train.Feature(int64_list=tf.train.Int64List(value=ele["input_ids"]))
+        feature["input_ids"] = tf.train.Feature(int64_list=tf.train.Int64List(value=list(ele["input_ids"])))
         feature["label"] = tf.train.Feature(int64_list=tf.train.Int64List(value=[ele["label"]]))
         if counts <= 10:
-            tf.logging.info("qid is {}\n, input_ids is {}\n, label is {}".format(feature["qid"], feature["input_ids"], feature["label"]))
+            tf.logging.info("qid is {},\n input_ids is {},\n label is {}"
+                            .format(feature["qid"].bytes_list.value, feature["input_ids"].int64_list.value, feature["label"].int64_list.value))
 
         example = tf.train.Example(features=tf.train.Features(feature=feature))
         writer[counts % len(writer)].write(example.SerializeToString())
@@ -197,12 +210,14 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("test_input_file")
     flags.mark_flag_as_required("train_output_file")
     flags.mark_flag_as_required("test_output_file")
+    flags.mark_flag_as_required("max_sequence_length")
     flags.mark_flag_as_required("vocab_file")
     FLAGS.train_input_file = config.train_file
     FLAGS.test_input_file = config.test_file
     FLAGS.train_output_file = config.train_output_file
     FLAGS.test_output_file = config.test_output_file
     FLAGS.vocab_file = config.vocab_file
+    FLAGS.max_sequence_length = config.max_sequence_length
     FLAGS.recreate_vocab = False
     tf.app.run()
 

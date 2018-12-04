@@ -58,12 +58,12 @@ def model_fn_builder(earth_config=EarthConfig()):
             spec = tf.estimator.EstimatorSpec(loss=model.loss, train_op=train_op, mode=mode)
         elif mode == tf.estimator.ModeKeys.EVAL:
             eval_metrics_op = {
-                "accuracy": tf.metrics.accuracy(labels=input_y, predictions=model.predictions),
-                "recall": tf.metrics.recall(labels=input_y, predictions=model.predictions),
-                "f1_score": tf.contrib.metrics.f1_score(labels=input_y, predictions=model.predictions),
-                "loss": tf.metrics.mean(model.loss)
+                "accuracy": tf.metrics.accuracy(labels=features["label"], predictions=model.predictions),
+                "recall": tf.metrics.recall(labels=features["label"], predictions=model.predictions),
+                "f1_score": tf.contrib.metrics.f1_score(labels=features["label"], predictions=model.predictions),
+                "average_loss": tf.metrics.mean(model.loss)
             }
-            spec = tf.estimator.EstimatorSpec(loss=model.loss, eval_metric_ops=eval_metrics_op)
+            spec = tf.estimator.EstimatorSpec(loss=model.loss, eval_metric_ops=eval_metrics_op, mode=mode)
         else:
             spec = tf.estimator.EstimatorSpec(predictions=model.predictions)
 
@@ -78,10 +78,32 @@ def build_train_input_fn(batch_size):
         name_to_feature = {
             "qid": tf.FixedLenFeature([], dtype=tf.string),
             "input_ids": tf.FixedLenFeature([config.max_sequence_length], dtype=tf.int64),
-            #"input_ids": tf.FixedLenFeature([], dtype=tf.int64),
             "label": tf.FixedLenFeature([], dtype=tf.int64)
         }
         filenames = config.train_output_file.split(',')
+        tf.logging.info(filenames)
+
+        def _decode(record):
+            tf.logging.info("****************")
+            tf.logging.info(record)
+            return tf.parse_single_example(record, name_to_feature)
+
+        dataset = tf.data.TFRecordDataset(filenames=config.train_output_file.split(','))
+        dataset = dataset.map(lambda record: _decode(record)).batch(batch_size=batch_size)
+        return dataset
+
+    return input_fn
+
+
+def build_dev_input_fn(batch_size):
+
+    def input_fn():
+        name_to_feature = {
+            "qid": tf.FixedLenFeature([], dtype=tf.string),
+            "input_ids": tf.FixedLenFeature([config.max_sequence_length], dtype=tf.int64),
+            "label": tf.FixedLenFeature([], dtype=tf.int64)
+        }
+        filenames = config.dev_output_file.split(',')
         tf.logging.info(filenames)
 
         def _decode(record):
@@ -106,14 +128,9 @@ def build_test_input_fn(batch_size):
         }
 
         dataset = tf.data.TFRecordDataset(filenames=config.test_output_file.split(','))
-
-        dataset = dataset.map(lambda record: tf.parse_single_example(record, name_to_feature)).batch(batch_size=batch_size)
-
-        #""""
-        #dataset = dataset.apply(
-        #    tf.contrib.data.map_and_batch(lambda record: tf.parse_single_example(record, name_to_feature), batch_size=32)
-        #)
-        #"""
+        dataset = dataset.map(
+            lambda record: tf.parse_single_example(record, name_to_feature)
+        ).batch(batch_size=batch_size)
 
         return dataset
 
@@ -134,8 +151,11 @@ class EarthModel(object):
     def train(self):
         self.estimator.train(input_fn=build_train_input_fn(self.earth_config.train_batch_size))
 
+    def eval(self):
+        self.estimator.evaluate(input_fn=build_dev_input_fn(self.earth_config.dev_batch_size))
+
 
 if __name__ == "__main__":
     tf.logging.set_verbosity(tf.logging.INFO)
     earth_model = EarthModel()
-    earth_model.train()
+    earth_model.eval()

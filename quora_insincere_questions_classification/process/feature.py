@@ -31,6 +31,7 @@ def create_vocab(input_files, output_file, is_lower=True, skip_header=0):
     """
 
     :param input_files: a list of csv files
+    :param output_file: a file used to record all lemma
     :param skip_header: count of lines you would't read
     :return:
     """
@@ -151,11 +152,12 @@ def create_test_instance(input_files, vocab_file, is_lower=True, skip_header=0):
                 yield feature
 
 
-def write_instances_to_example_files(instances, train_output_files, dev_output_files):
+def write_train_instances_to_example_files(instances, train_output_files, dev_output_files):
     """
 
     :param instances: a dict ==> {'name': feature value}
-    :param output_files: a list of files
+    :param train_output_files: a list of files
+    :param dev_output_files: a list of files
     :return:
     """
     rng = random.Random(FLAGS.random_seed)
@@ -194,6 +196,35 @@ def write_instances_to_example_files(instances, train_output_files, dev_output_f
         w.close()
 
 
+def write_test_instances_to_example_files(instances, test_output_files):
+    """
+
+    :param instances: a dict ==> {'name': feature value}
+    :param test_output_files: a list of files
+    :return:
+    """
+    test_writer = []
+    for file in test_output_files:
+        f = tf.python_io.TFRecordWriter(file)
+        test_writer.append(f)
+
+    test_counts = 0
+    for ele in instances:
+        feature = collections.OrderedDict()
+        feature["qid"] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[ele["qid"].encode("utf-8")]))
+        feature["input_ids"] = tf.train.Feature(int64_list=tf.train.Int64List(value=list(ele["input_ids"])))
+        feature["label"] = tf.train.Feature(int64_list=tf.train.Int64List(value=[ele["label"]]))
+        if test_counts <= 10:
+            tf.logging.info("qid is {},\n input_ids is {},\n label is {}"
+                            .format(feature["qid"].bytes_list.value, feature["input_ids"].int64_list.value, feature["label"].int64_list.value))
+
+        example = tf.train.Example(features=tf.train.Features(feature=feature))
+        test_writer[test_counts % len(test_writer)].write(example.SerializeToString())
+
+    for w in test_writer:
+        w.close()
+
+
 def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
     train_files = FLAGS.train_input_file.split(",")
@@ -210,13 +241,13 @@ def main(_):
 
     train_output_files = FLAGS.train_output_file.split(",")
     dev_output_files = FLAGS.dev_output_file.split(",")
-    write_instances_to_example_files(instances, train_output_files, dev_output_files=dev_output_files)
+    write_train_instances_to_example_files(instances, train_output_files, dev_output_files=dev_output_files)
 
     tf.logging.info("######## read test files ##########")
 
     instances = create_test_instance(test_files, vocab_file, True, 1)
     test_output_files = FLAGS.test_output_file.split(",")
-    write_instances_to_example_files(instances, test_output_files)
+    write_test_instances_to_example_files(instances, test_output_files)
 
 
 if __name__ == "__main__":

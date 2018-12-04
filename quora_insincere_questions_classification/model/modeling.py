@@ -104,11 +104,16 @@ def build_test_input_fn(batch_size):
             "input_ids": tf.FixedLenFeature([config.max_sequence_length],dtype=tf.int64),
             "labels": tf.FixedLenFeature([], dtype=tf.int64)
         }
+
         dataset = tf.data.TFRecordDataset(filenames=config.test_output_file.split(','))
-        #dataset = dataset.map(lambda record: tf.parse_single_example(record, name_to_feature)).batch(batch_size=batch_size)
-        dataset = dataset.apply(
-            tf.contrib.data.map_and_batch(lambda record: tf.parse_single_example(record, name_to_feature), batch_size=32)
-        )
+
+        dataset = dataset.map(lambda record: tf.parse_single_example(record, name_to_feature)).batch(batch_size=batch_size)
+
+        #""""
+        #dataset = dataset.apply(
+        #    tf.contrib.data.map_and_batch(lambda record: tf.parse_single_example(record, name_to_feature), batch_size=32)
+        #)
+        #"""
 
         return dataset
 

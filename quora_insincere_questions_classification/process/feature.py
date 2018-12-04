@@ -11,12 +11,14 @@ from configuration import config
 from poros.poros_chars import tokenization
 import csv
 import collections
+import random
 
 flags = tf.flags
 FLAGS = flags.FLAGS
 flags.DEFINE_string("train_input_file", None, "Input raw text training file (or comma-separated list of files).")
 flags.DEFINE_string("test_input_file", None, "Input raw text testing file (or comma-separated list of files).")
 flags.DEFINE_string("train_output_file", None, "TFRecord file containing training data(or comma-separated list of files).")
+flags.DEFINE_string("dev_output_file", None, "TFRecord file containing dev data(or comma-separated list of files).")
 flags.DEFINE_string("test_output_file", None, "TFRecord file containing test data(or comma-separated list of files).")
 flags.DEFINE_string("vocab_file", None, "Vocab file")
 flags.DEFINE_integer("max_sequence_length", 300, "text with length more than setting will be truncated")
@@ -149,33 +151,46 @@ def create_test_instance(input_files, vocab_file, is_lower=True, skip_header=0):
                 yield feature
 
 
-def write_instances_to_example_files(instances, output_files):
+def write_instances_to_example_files(instances, train_output_files, dev_output_files):
     """
 
     :param instances: a dict ==> {'name': feature value}
     :param output_files: a list of files
     :return:
     """
-    writer = []
-    for file in output_files:
+    rng = random.Random(FLAGS.random_seed)
+    train_writer = []
+    for file in train_output_files:
         f = tf.python_io.TFRecordWriter(file)
-        writer.append(f)
+        train_writer.append(f)
 
-    counts = 0
+    dev_writer = []
+    for file in dev_output_files:
+        f = tf.python_io.TFRecordWriter(file)
+        dev_writer.append(f)
+
+    train_counts = 0
+    dev_counts = 0
     for ele in instances:
         feature = collections.OrderedDict()
         feature["qid"] = tf.train.Feature(bytes_list=tf.train.BytesList(value=[ele["qid"].encode("utf-8")]))
         feature["input_ids"] = tf.train.Feature(int64_list=tf.train.Int64List(value=list(ele["input_ids"])))
         feature["label"] = tf.train.Feature(int64_list=tf.train.Int64List(value=[ele["label"]]))
-        if counts <= 10:
+        if train_counts <= 10:
             tf.logging.info("qid is {},\n input_ids is {},\n label is {}"
                             .format(feature["qid"].bytes_list.value, feature["input_ids"].int64_list.value, feature["label"].int64_list.value))
 
         example = tf.train.Example(features=tf.train.Features(feature=feature))
-        writer[counts % len(writer)].write(example.SerializeToString())
-        counts += 1
+        if rng.random() < 0.67:
+            train_writer[train_counts % len(train_writer)].write(example.SerializeToString())
+            train_counts += 1
+        else:
+            dev_writer[dev_counts % len(dev_writer)].write(example.SerializeToString())
+            dev_counts += 1
 
-    for w in writer:
+    for w in train_writer:
+        w.close()
+    for w in dev_writer:
         w.close()
 
 
@@ -192,8 +207,10 @@ def main(_):
         create_vocab(train_files+test_files, vocab_file, True, 1)
 
     instances = create_training_instance(train_files, vocab_file, True, 1)
+
     train_output_files = FLAGS.train_output_file.split(",")
-    write_instances_to_example_files(instances, train_output_files)
+    dev_output_files = FLAGS.dev_output_file.split(",")
+    write_instances_to_example_files(instances, train_output_files, dev_output_files=dev_output_files)
 
     tf.logging.info("######## read test files ##########")
 
@@ -209,16 +226,18 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("train_input_file")
     flags.mark_flag_as_required("test_input_file")
     flags.mark_flag_as_required("train_output_file")
+    flags.mark_flag_as_required("dev_output_file")
     flags.mark_flag_as_required("test_output_file")
     flags.mark_flag_as_required("max_sequence_length")
     flags.mark_flag_as_required("vocab_file")
+    flags.mark_flag_as_required("random_seed")
     FLAGS.train_input_file = config.train_file
     FLAGS.test_input_file = config.test_file
     FLAGS.train_output_file = config.train_output_file
+    FLAGS.dev_output_file = config.dev_output_file
     FLAGS.test_output_file = config.test_output_file
     FLAGS.vocab_file = config.vocab_file
+    FLAGS.random_seed = config.random_seed
     FLAGS.max_sequence_length = config.max_sequence_length
     FLAGS.recreate_vocab = False
     tf.app.run()
-
-

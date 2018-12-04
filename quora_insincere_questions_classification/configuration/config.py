@@ -39,9 +39,12 @@ vocab_file = os.path.join(data_path, "vocab.dict")
 output files used to store data preprocessed
 """
 train_output_file = os.path.join(data_path, "train.feature_record.tf_record")
+dev_output_file = os.path.join(data_path, "dev.feature_record.tf_record")
 test_output_file = os.path.join(data_path, "test.feature_record.tf_record")
 
 max_sequence_length = 300
 vocab_size = 200344
+
+random_seed = 10001
 
 model_dir = os.path.join(data_path, "model")

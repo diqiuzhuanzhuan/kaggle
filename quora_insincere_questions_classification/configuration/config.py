@@ -34,6 +34,8 @@ for file in (train_file, test_file):
 vocab file
 """
 vocab_file = os.path.join(data_path, "vocab.dict")
+word_file = os.path.join(data_path, "word.dict")
+use_word = True
 
 """
 output files used to store data preprocessed
@@ -44,7 +46,9 @@ test_output_file = os.path.join(data_path, "test.feature_record.tf_record")
 
 max_sequence_length = 300
 vocab_size = 200344
+word_size = 30522
 
 random_seed = 10001
+
 
 model_dir = os.path.join(data_path, "model")

@@ -21,6 +21,8 @@ flags.DEFINE_string("train_output_file", None, "TFRecord file containing trainin
 flags.DEFINE_string("dev_output_file", None, "TFRecord file containing dev data(or comma-separated list of files).")
 flags.DEFINE_string("test_output_file", None, "TFRecord file containing test data(or comma-separated list of files).")
 flags.DEFINE_string("vocab_file", None, "Vocab file")
+flags.DEFINE_string("word_file", None, "Word file")
+flags.DEFINE_boolean("use_word", False, "if you want to use data/word.dict as vocab")
 flags.DEFINE_integer("max_sequence_length", 300, "text with length more than setting will be truncated")
 flags.DEFINE_boolean("recreate_vocab", False, "if you want to create a vocab again?")
 flags.DEFINE_boolean("is_lower", True, "make sure everything is lower case or not")
@@ -58,8 +60,8 @@ def create_vocab(input_files, output_file, is_lower=True, skip_header=0):
         for word in words:
             writer.write(word)
             writer.write("\n")
-        writer.write("<UNK>\n")
-        writer.write("<PAD>")
+        writer.write("[UNK]\n")
+        writer.write("[PAD]")
 
 
 def generate_vocab(vocab_file):
@@ -81,17 +83,15 @@ def generate_vocab(vocab_file):
     return vocab
 
 
-def create_training_instance(input_files, vocab_file, is_lower=True, skip_header=0):
+def create_training_instance(input_files, tokenizer, is_lower=True, skip_header=0):
     """
 
     :param input_files: a list of csv files, such as ['a', 'b', 'c']
-    :param vocab_file: vocab file
+    :param tokenizer: split string
     :param is_lower: make sure all the words is in lower case or not
     :param skip_header: count of lines you would't read
     :return:
     """
-    tokenizer = tokenization.BasicTokenizer(do_lower_case=is_lower)
-    vocab = generate_vocab(vocab_file)
     for file in input_files:
         with open(file) as f:
             rows = 0
@@ -107,26 +107,24 @@ def create_training_instance(input_files, vocab_file, is_lower=True, skip_header
                 label = int(line[2])
                 feature = collections.OrderedDict()
                 feature["qid"] = line[0]
-                feature["input_ids"] = tokenization.convert_tokens_to_ids(vocab, text)
+                feature["input_ids"] = tokenizer.convert_tokens_to_ids(text)
                 if len(feature["input_ids"]) < FLAGS.max_sequence_length:
-                    feature["input_ids"].extend([vocab["<PAD>"]] * (FLAGS.max_sequence_length - len(feature["input_ids"])))
+                    feature["input_ids"].extend(tokenizer.convert_tokens_to_ids(["[PAD]"]) * (FLAGS.max_sequence_length - len(feature["input_ids"])))
                 if len(feature["input_ids"]) > FLAGS.max_sequence_length:
                     feature["input_ids"] = feature["input_ids"][:FLAGS.max_sequence_length]
                 feature["label"] = label
                 yield feature
 
 
-def create_test_instance(input_files, vocab_file, is_lower=True, skip_header=0):
+def create_test_instance(input_files, tokenizer, is_lower=True, skip_header=0):
     """
 
     :param input_files:
-    :param vocab_file:
+    :param tokenizer:
     :param is_lower:
     :param skip_header:
     :return:
     """
-    tokenizer = tokenization.BasicTokenizer(do_lower_case=is_lower)
-    vocab = generate_vocab(vocab_file)
     for file in input_files:
         with open(file) as f:
             rows = 0
@@ -141,9 +139,9 @@ def create_test_instance(input_files, vocab_file, is_lower=True, skip_header=0):
                 text = tokenizer.tokenize(line[1])
                 feature = collections.OrderedDict()
                 feature["qid"] = line[0]
-                feature["input_ids"] = tokenization.convert_tokens_to_ids(vocab, text)
+                feature["input_ids"] = tokenizer.convert_tokens_to_ids(text)
                 if len(feature["input_ids"]) < FLAGS.max_sequence_length:
-                    feature["input_ids"].extend([vocab["<PAD>"]] * (FLAGS.max_sequence_length - len(feature["input_ids"])))
+                    feature["input_ids"].extend(tokenizer.convert_tokens_to_ids(["[PAD]"]) * (FLAGS.max_sequence_length - len(feature["input_ids"])))
 
                 if len(feature["input_ids"]) > FLAGS.max_sequence_length:
                     feature["input_ids"] = feature["input_ids"][:FLAGS.max_sequence_length]
@@ -236,8 +234,13 @@ def main(_):
     vocab_file = FLAGS.vocab_file
     if not os.path.exists(vocab_file) or FLAGS.recreate_vocab:
         create_vocab(train_files+test_files, vocab_file, True, 1)
+    word_file = FLAGS.word_file
+    if FLAGS.use_word:
+        tokenizer = tokenization.FullTokenizer(word_file)
+    else:
+        tokenizer = tokenization.FullTokenizer(vocab_file)
 
-    instances = create_training_instance(train_files, vocab_file, True, 1)
+    instances = create_training_instance(train_files, tokenizer, True, 1)
 
     train_output_files = FLAGS.train_output_file.split(",")
     dev_output_files = FLAGS.dev_output_file.split(",")
@@ -245,7 +248,7 @@ def main(_):
 
     tf.logging.info("######## read test files ##########")
 
-    instances = create_test_instance(test_files, vocab_file, True, 1)
+    instances = create_test_instance(test_files, tokenizer, True, 1)
     test_output_files = FLAGS.test_output_file.split(",")
     write_test_instances_to_example_files(instances, test_output_files)
 
@@ -271,4 +274,6 @@ if __name__ == "__main__":
     FLAGS.random_seed = config.random_seed
     FLAGS.max_sequence_length = config.max_sequence_length
     FLAGS.recreate_vocab = False
+    FLAGS.use_word = config.use_word
+    FLAGS.word_file = config.word_file
     tf.app.run()

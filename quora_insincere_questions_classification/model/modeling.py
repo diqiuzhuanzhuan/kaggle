@@ -64,6 +64,8 @@ def model_fn_builder(earth_config=EarthConfig()):
                 "average_loss": tf.metrics.mean(model.loss)
             }
             spec = tf.estimator.EstimatorSpec(loss=model.loss, eval_metric_ops=eval_metrics_op, mode=mode)
+        elif mode == tf.estimator.ModeKeys.PREDICT:
+            spec = tf.estimator.EstimatorSpec(predictions=model.predictions, mode=mode)
         else:
             spec = tf.estimator.EstimatorSpec(predictions=model.predictions)
 
@@ -118,13 +120,13 @@ def build_dev_input_fn(batch_size):
     return input_fn
 
 
-def build_test_input_fn(batch_size):
+def build_predict_input_fn(batch_size):
 
     def input_fn():
         name_to_feature = {
             "qid": tf.FixedLenFeature([], dtype=tf.string),
             "input_ids": tf.FixedLenFeature([config.max_sequence_length],dtype=tf.int64),
-            "labels": tf.FixedLenFeature([], dtype=tf.int64)
+            "label": tf.FixedLenFeature([], dtype=tf.int64)
         }
 
         dataset = tf.data.TFRecordDataset(filenames=config.test_output_file.split(','))
@@ -145,17 +147,35 @@ class EarthModel(object):
         self.estimator = tf.estimator.Estimator(
             model_fn=model_fn_builder(earth_config=self.earth_config),
             model_dir=config.model_dir,
-            config=run_config
+            config=run_config,
+            params={}
         )
 
     def train(self):
-        self.estimator.train(input_fn=build_train_input_fn(self.earth_config.train_batch_size))
+        training = self.estimator.train(input_fn=build_train_input_fn(self.earth_config.train_batch_size))
+        return training
 
     def eval(self):
-        self.estimator.evaluate(input_fn=build_dev_input_fn(self.earth_config.dev_batch_size))
+        evaluation = self.estimator.evaluate(input_fn=build_dev_input_fn(self.earth_config.dev_batch_size))
+        return evaluation
+
+    def predict(self):
+        """
+
+        :return:  like this, [1, 0, 1, 0]
+        """
+        prediction = self.estimator.predict(input_fn=build_predict_input_fn(self.earth_config.predict_batch_size))
+        return prediction
+
+
+def eval():
+    earth_model = EarthModel()
+    evaluation = earth_model.eval()
+    for i, j in evaluation.items():
+        tf.logging.info("{}, {}".format(i, j))
 
 
 if __name__ == "__main__":
     tf.logging.set_verbosity(tf.logging.INFO)
-    earth_model = EarthModel()
-    earth_model.eval()
+    eval()
+

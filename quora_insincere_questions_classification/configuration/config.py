@@ -50,5 +50,11 @@ word_size = 30522
 
 random_seed = 10001
 
+"""
+pretrain use bert
+"""
+bert_raw_data_file = os.path.join(data_path, "bert_raw_data.txt")
+bert_intermediate_file = os.path.join(data_path, "bert_intermediate.tfrecord")
+
 
 model_dir = os.path.join(data_path, "model")

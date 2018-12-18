@@ -41,6 +41,7 @@ def train():
                  max_seq_length=config.max_sequence_length,
                  do_train=True,
                  do_eval=True,
+                 train_batch_size=config.bert_train_batch_size,
                  num_train_steps=35228)
 
 

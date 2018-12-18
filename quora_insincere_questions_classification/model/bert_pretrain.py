@@ -9,7 +9,7 @@ email: diqiuzhuanzhuan@gmail.com
 import csv
 from configuration import config
 import tensorflow as tf
-from poros.bert_model import create_pretraining_data
+from poros.bert_model import create_pretraining_data, pretrain
 
 
 def generate_raw_data(skip_header=0):
@@ -33,12 +33,26 @@ def generate_pretrain_data():
                                         max_predictions_per_seq=45)
 
 
-def main(_):
+def train():
+    pretrain.run(input_file=config.bert_intermediate_file,
+                 bert_config_file=config.bert_config_file,
+                 output_dir=config.bert_model_path,
+                 max_predictions_per_seq=45,
+                 max_seq_length=config.max_sequence_length,
+                 do_train=True,
+                 do_eval=True,
+                 num_train_steps=35228)
+
+
+def data_prepare():
     generate_raw_data(skip_header=1)
     generate_pretrain_data()
 
 
 if __name__ == "__main__":
-    s = input("即将重新生成预训练bert模型的tfrecord数据，如果数据已经存在，那么将会被覆盖，确认执行请输入yes\n")
+    s = input("即将重新生成预训练bert模型的tfrecord数据，如果数据已经存在，那么将会被覆盖，确认执行请输入yes, 跳过请输入其他.\n")
     if s == "yes":
-        tf.app.run()
+        data_prepare()
+    s = input("即将开始预训练，确认请输入yes\n")
+    if s == "yes":
+        train()

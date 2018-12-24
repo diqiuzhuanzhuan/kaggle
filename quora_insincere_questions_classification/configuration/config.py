@@ -61,3 +61,16 @@ bert_config_file = os.path.join(data_path, "bert_config.json")
 bert_model_path = os.path.join(model_dir, "bert_model")
 bert_train_batch_size = 16
 
+"""
+use text_cnn
+"""
+text_cnn_train_steps = 3000
+
+
+"""
+for ordinary model
+"""
+train_split_file = os.path.join(data_path, "train_split_file.csv")
+dev_split_file = os.path.join(data_path, "dev_split_file.csv")
+
+

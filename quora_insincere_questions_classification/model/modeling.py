@@ -151,8 +151,9 @@ class EarthModel(object):
             params={}
         )
 
-    def train(self):
-        training = self.estimator.train(input_fn=build_train_input_fn(self.earth_config.train_batch_size))
+    def train(self, steps=config.text_cnn_train_steps):
+        training = self.estimator.train(input_fn=build_train_input_fn(self.earth_config.train_batch_size),
+                                        steps=steps)
         return training
 
     def eval(self):

@@ -42,7 +42,7 @@ def train():
                  do_train=True,
                  do_eval=True,
                  train_batch_size=config.bert_train_batch_size,
-                 num_train_steps=35228)
+                 num_train_steps=100)
 
 
 def data_prepare():

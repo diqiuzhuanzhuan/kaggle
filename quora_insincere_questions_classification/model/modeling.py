@@ -74,7 +74,7 @@ def model_fn_builder(earth_config=EarthConfig()):
     return model_fn
 
 
-def build_train_input_fn(batch_size):
+def train_input_fn_builder(batch_size):
 
     def input_fn():
         name_to_feature = {
@@ -97,7 +97,7 @@ def build_train_input_fn(batch_size):
     return input_fn
 
 
-def build_dev_input_fn(batch_size):
+def dev_input_fn_builder(batch_size):
 
     def input_fn():
         name_to_feature = {
@@ -120,7 +120,7 @@ def build_dev_input_fn(batch_size):
     return input_fn
 
 
-def build_predict_input_fn(batch_size):
+def predict_input_fn_builder(batch_size):
 
     def input_fn():
         name_to_feature = {
@@ -152,12 +152,12 @@ class EarthModel(object):
         )
 
     def train(self, steps=config.text_cnn_train_steps):
-        training = self.estimator.train(input_fn=build_train_input_fn(self.earth_config.train_batch_size),
+        training = self.estimator.train(input_fn=train_input_fn_builder(self.earth_config.train_batch_size),
                                         steps=steps)
         return training
 
     def eval(self):
-        evaluation = self.estimator.evaluate(input_fn=build_dev_input_fn(self.earth_config.dev_batch_size))
+        evaluation = self.estimator.evaluate(input_fn=dev_input_fn_builder(self.earth_config.dev_batch_size))
         return evaluation
 
     def predict(self):
@@ -165,7 +165,7 @@ class EarthModel(object):
 
         :return:  like this, [1, 0, 1, 0]
         """
-        prediction = self.estimator.predict(input_fn=build_predict_input_fn(self.earth_config.predict_batch_size))
+        prediction = self.estimator.predict(input_fn=predict_input_fn_builder(self.earth_config.predict_batch_size))
         return prediction
 
 

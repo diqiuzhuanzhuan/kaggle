@@ -35,6 +35,10 @@ vocab file
 """
 vocab_file = os.path.join(data_path, "vocab.dict")
 word_file = os.path.join(data_path, "word.dict")
+
+"""
+use word piece or not
+"""
 use_word = True
 
 """
@@ -59,6 +63,7 @@ bert_raw_data_file = os.path.join(data_path, "bert_raw_data.txt")
 bert_intermediate_file = os.path.join(data_path, "bert_intermediate.tfrecord")
 bert_config_file = os.path.join(data_path, "bert_config.json")
 bert_model_path = os.path.join(model_dir, "bert_model")
+bert_model_name = os.path.join(bert_model_path)
 bert_train_batch_size = 16
 
 """
@@ -70,6 +75,7 @@ text_cnn_train_steps = 3000
 """
 for ordinary model
 """
+# firstly, we need a training file and dev file with csv format
 train_split_file = os.path.join(data_path, "train_split_file.csv")
 dev_split_file = os.path.join(data_path, "dev_split_file.csv")
 

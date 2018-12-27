@@ -10,9 +10,11 @@ import csv
 from configuration import config
 import tensorflow as tf
 from poros.bert_model import create_pretraining_data, pretrain
+import random
 
 
 def generate_raw_data(skip_header=0):
+    rng = random.Random(config.random_seed)
     file_list = [config.train_file, config.test_file]
     writer = tf.gfile.GFile(config.bert_raw_data_file, "w")
     for file in file_list:
@@ -21,10 +23,18 @@ def generate_raw_data(skip_header=0):
             for i, line in enumerate(reader):
                 if i < skip_header:
                     continue
-                line = line[1].split(".")
-                for j in line:
-                    writer.write(j)
-                writer.write("\n\n")
+                line = line[1]
+                line = line.split(" ")
+                if len(line) > 30:
+                    pos = rng.randint(1, len(line))
+                    writer.write(" ".join(line[0:pos]))
+                    writer.write("\n")
+                    writer.write(" ".join(line[pos:]))
+                    writer.write("\n")
+                else:
+                    writer.write(" ".join(line))
+                    writer.write("\n")
+                writer.write("\n")
     writer.close()
 
 

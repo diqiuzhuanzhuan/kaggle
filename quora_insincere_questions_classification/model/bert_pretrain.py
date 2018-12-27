@@ -21,7 +21,9 @@ def generate_raw_data(skip_header=0):
             for i, line in enumerate(reader):
                 if i < skip_header:
                     continue
-                writer.write(line[1])
+                line = line[1].split(".")
+                for j in line:
+                    writer.write(j)
                 writer.write("\n\n")
     writer.close()
 
@@ -42,7 +44,10 @@ def train():
                  do_train=True,
                  do_eval=True,
                  train_batch_size=config.bert_train_batch_size,
-                 num_train_steps=100)
+                 num_train_steps=100,
+                 alpha=0.8,
+                 beta=0.2,
+                )
 
 
 def data_prepare():

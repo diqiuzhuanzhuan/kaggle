@@ -22,7 +22,7 @@ def generate_raw_data(skip_header=0):
                 if i < skip_header:
                     continue
                 writer.write(line[1])
-                writer.write("\n")
+                writer.write("\n\n")
     writer.close()
 
 

@@ -64,7 +64,7 @@ bert_intermediate_file = os.path.join(data_path, "bert_intermediate.tfrecord")
 bert_config_file = os.path.join(data_path, "bert_config.json")
 bert_model_path = os.path.join(model_dir, "bert_model")
 bert_model_name = os.path.join(bert_model_path)
-bert_train_batch_size = 16
+bert_train_batch_size = 8
 
 """
 use text_cnn

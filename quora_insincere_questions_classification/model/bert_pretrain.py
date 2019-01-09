@@ -26,7 +26,7 @@ def generate_raw_data(skip_header=0):
                 line = line[1]
                 line = line.split(" ")
                 if len(line) > 30:
-                    pos = rng.randint(1, len(line))
+                    pos = rng.randint(10, len(line))
                     writer.write(" ".join(line[0:pos]))
                     writer.write("\n")
                     writer.write(" ".join(line[pos:]))

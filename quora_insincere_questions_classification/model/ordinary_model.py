@@ -48,6 +48,7 @@ def main(_):
     tf.logging.info("start...")
 
     model = run_classifier.SimpleClassifierModel(
+        train_batch_size=config.bert_train_batch_size,
         bert_config_file=config.bert_config_file,
         vocab_file=config.word_file,
         output_dir="ordinary_model",
@@ -59,6 +60,7 @@ def main(_):
         init_checkpoint=config.bert_model_name
     )
     model.train()
+    model.eval()
 
 
 if __name__ == "__main__":

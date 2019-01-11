@@ -43,6 +43,19 @@ def create_train_and_dev_file():
             writer.writerow(i)
 
 
+def read_test_file():
+    test_data = []
+    with open(config.test_file, "r") as f:
+        reader = csv.reader(f, delimiter=",", quotechar="\"")
+        for i, line in enumerate(reader):
+            if i == 0:
+                continue
+
+            test_data.append([str(i), line[1]])
+
+    return test_data
+
+
 def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
     tf.logging.info("start...")
@@ -61,6 +74,9 @@ def main(_):
     )
     model.train()
     model.eval()
+    test_data = read_test_file()
+    res = model.predict(test_data)
+    print(res)
 
 
 if __name__ == "__main__":

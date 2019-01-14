@@ -45,6 +45,7 @@ def create_train_and_dev_file():
 
 def read_test_file():
     test_data = []
+    qid = []
     with open(config.test_file, "r") as f:
         reader = csv.reader(f, delimiter=",", quotechar="\"")
         for i, line in enumerate(reader):
@@ -52,11 +53,21 @@ def read_test_file():
                 continue
 
             test_data.append([str(i), line[1]])
+            qid.append(line[0])
 
-    return test_data
+    return test_data, qid
 
 
-def main(_):
+def write_result(test_result, qid):
+    with open(config.ordinary_test_result_file, "w") as f:
+        writer = csv.writer(f)
+        writer.writerow("qid, prediction")
+        for i, j in zip(qid, test_result):
+            writer.writerow([i, j])
+        writer.close()
+
+
+def main(init_checkpoint=config.bert_model_name):
     tf.logging.set_verbosity(tf.logging.INFO)
     tf.logging.info("start...")
 
@@ -64,21 +75,21 @@ def main(_):
         train_batch_size=config.bert_train_batch_size,
         bert_config_file=config.bert_config_file,
         vocab_file=config.word_file,
-        output_dir="ordinary_model",
+        output_dir=config.ordinary_model_name,
         max_seq_length=config.max_sequence_length,
         train_file=config.train_split_file,
         dev_file=config.dev_split_file,
         is_train=True,
         label_list=["0", "1"],
-        init_checkpoint=config.bert_model_name
+        init_checkpoint=init_checkpoint
     )
-    model.train()
-    model.eval()
-    test_data = read_test_file()
+    #model.train()
+    #model.eval()
+    test_data, qid = read_test_file()
     res = model.predict(test_data)
-    print(res)
+    write_result(res, qid)
 
 
 if __name__ == "__main__":
     create_train_and_dev_file()
-    main(None)
+    main(config.ordinary_model_name)

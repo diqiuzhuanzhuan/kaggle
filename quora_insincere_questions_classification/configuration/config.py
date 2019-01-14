@@ -78,5 +78,5 @@ for ordinary model
 # firstly, we need a training file and dev file with csv format
 train_split_file = os.path.join(data_path, "train_split_file.csv")
 dev_split_file = os.path.join(data_path, "dev_split_file.csv")
-
-
+ordinary_model_name = os.path.join(model_dir, "ordinary_model")
+ordinary_test_result_file = os.path.join(model_dir, "ordinary_model_result.csv")

@@ -61,10 +61,9 @@ def read_test_file():
 def write_result(test_result, qid):
     with open(config.ordinary_test_result_file, "w") as f:
         writer = csv.writer(f)
-        writer.writerow("qid, prediction")
+        writer.writerow(["qid", "prediction"])
         for i, j in zip(qid, test_result):
             writer.writerow([i, j])
-        writer.close()
 
 
 def main(init_checkpoint=config.bert_model_name):
@@ -83,8 +82,8 @@ def main(init_checkpoint=config.bert_model_name):
         label_list=["0", "1"],
         init_checkpoint=init_checkpoint
     )
-    #model.train()
-    #model.eval()
+    model.train()
+    model.eval()
     test_data, qid = read_test_file()
     res = model.predict(test_data)
     write_result(res, qid)

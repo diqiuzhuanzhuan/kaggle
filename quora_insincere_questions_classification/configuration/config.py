@@ -79,4 +79,4 @@ for ordinary model
 train_split_file = os.path.join(data_path, "train_split_file.csv")
 dev_split_file = os.path.join(data_path, "dev_split_file.csv")
 ordinary_model_name = os.path.join(model_dir, "ordinary_model")
-ordinary_test_result_file = os.path.join(model_dir, "ordinary_model_result.csv")
+ordinary_test_result_file = os.path.join(ordinary_model_name, "ordinary_model_result.csv")

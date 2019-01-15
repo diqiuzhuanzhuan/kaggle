@@ -11,11 +11,18 @@ from configuration import config
 import csv
 import random
 
+FLAGS = tf.flags.FLAGS
 
-def create_train_and_dev_file():
+tf.flags.DEFINE_bool("eval", True, "eval for evaluation file")
+tf.flags.DEFINE_bool("train", True, "train for training file ")
+tf.flags.DEFINE_bool("test", True, "predict for test file")
+tf.flags.DEFINE_bool("recreate_data", False, "generate train and dev data no matter the data is existed or not")
 
-    if tf.gfile.Exists(config.train_split_file) and tf.gfile.Exists(config.dev_split_file):
-        tf.logging.info("{} and {} are existed, don't recreate!")
+
+def create_train_and_dev_file(force):
+
+    if tf.gfile.Exists(config.train_split_file) and tf.gfile.Exists(config.dev_split_file) and not force:
+        tf.logging.info("{} and {} are existed, don't recreate!".format(config.train_split_file, config.dev_split_file))
         tf.logging.info("if you want to recreate, please delete them")
         return
     train = []
@@ -66,10 +73,13 @@ def write_result(test_result, qid):
             writer.writerow([i, j])
 
 
-def main(init_checkpoint=config.bert_model_name):
+def main(_):
     tf.logging.set_verbosity(tf.logging.INFO)
     tf.logging.info("start...")
 
+    create_train_and_dev_file(force=FLAGS.recreate_data)
+
+    init_checkpoint = config.bert_model_name
     model = run_classifier.SimpleClassifierModel(
         train_batch_size=config.bert_train_batch_size,
         bert_config_file=config.bert_config_file,
@@ -82,13 +92,15 @@ def main(init_checkpoint=config.bert_model_name):
         label_list=["0", "1"],
         init_checkpoint=init_checkpoint
     )
-    model.train()
-    model.eval()
-    test_data, qid = read_test_file()
-    res = model.predict(test_data)
-    write_result(res, qid)
+    if FLAGS.train:
+        model.train()
+    if FLAGS.eval:
+        model.eval()
+    if FLAGS.test:
+        test_data, qid = read_test_file()
+        res = model.predict(test_data)
+        write_result(res, qid)
 
 
 if __name__ == "__main__":
-    create_train_and_dev_file()
-    main(config.ordinary_model_name)
+    tf.app.run()

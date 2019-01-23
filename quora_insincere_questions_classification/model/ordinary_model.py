@@ -19,6 +19,23 @@ tf.flags.DEFINE_bool("test", True, "predict for test file")
 tf.flags.DEFINE_bool("recreate_data", False, "generate train and dev data no matter the data is existed or not")
 
 
+def enhance_negative_text(line, shuffle_count, blend_count, positives_lines):
+    res = []
+    positives_len = len(positives_lines)
+    for _ in shuffle_count:
+        cache_line = line.copy()
+        cache_line[2] = random.shuffle(cache_line[2])
+        res.append(cache_line)
+    for _ in blend_count:
+        cache_line = line.copy()
+        random_line = positives_lines[random.randint(0, positives_len-1)]
+        if random.random() < 0.5:
+            cache_line = cache_line + random_line
+        else:
+            cache_line = random_line + cache_line
+        res.append(cache_line)
+    return res
+
 def create_train_and_dev_file(force):
 
     if tf.gfile.Exists(config.train_split_file) and tf.gfile.Exists(config.dev_split_file) and not force:
@@ -27,6 +44,7 @@ def create_train_and_dev_file(force):
         return
     train = []
     dev = []
+    cache_lines = []
     with open(config.train_file, "r") as f:
         reader = csv.reader(f, delimiter=",", quotechar="\"")
         for i, line in enumerate(reader):
@@ -35,8 +53,17 @@ def create_train_and_dev_file(force):
                 we don't need header
                 """
                 continue
+
             if random.random() < 0.7:
-                train.append(line)
+                if line[2] == "1":
+                    res = enhance_negative_text(line, 4, 10, cache_lines)
+                    train.extend(res)
+                    train.append(line)
+                else:
+                    train.append(line)
+                    cache_lines.append(line)
+                if cache_lines.__len__() > 1000:
+                    cache_lines.pop(0)
             else:
                 dev.append(line)
     with open(config.train_split_file, "w") as f:

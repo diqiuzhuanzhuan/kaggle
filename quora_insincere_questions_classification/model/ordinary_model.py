@@ -22,19 +22,20 @@ tf.flags.DEFINE_bool("recreate_data", False, "generate train and dev data no mat
 def enhance_negative_text(line, shuffle_count, blend_count, positives_lines):
     res = []
     positives_len = len(positives_lines)
-    for _ in shuffle_count:
-        cache_line = line.copy()
-        cache_line[2] = random.shuffle(cache_line[2])
-        res.append(cache_line)
-    for _ in blend_count:
+    #for _ in range(shuffle_count):
+    #    cache_line = line.copy()
+    #    random.shuffle(cache_line[1])
+    #    res.append(cache_line)
+    for _ in range(blend_count):
         cache_line = line.copy()
         random_line = positives_lines[random.randint(0, positives_len-1)]
         if random.random() < 0.5:
-            cache_line = cache_line + random_line
+            cache_line[1] = cache_line[1] + " " + random_line[1]
         else:
-            cache_line = random_line + cache_line
+            cache_line[1] = random_line[1] + " " + cache_line[1]
         res.append(cache_line)
     return res
+
 
 def create_train_and_dev_file(force):
 

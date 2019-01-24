@@ -30,7 +30,7 @@ for file in (train_file, test_file):
     if not os.path.exists(file):
         print("文件不存在：{}".format(file))
 
-"""
+""" 
 vocab file
 """
 vocab_file = os.path.join(data_path, "vocab.dict")

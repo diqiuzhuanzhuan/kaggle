@@ -74,7 +74,7 @@ def create_train_and_dev_file(force):
 
     with open(config.dev_split_file, "w") as f:
         writer = csv.writer(f, delimiter=",", quotechar="\"")
-        for i in train:
+        for i in dev:
             writer.writerow(i)
 
 
